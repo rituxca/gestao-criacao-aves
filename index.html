@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestão da Criação</title>
+<style>
+body{font-family:Arial;margin:0;background:#f4f6f5;color:#222}
+header{background:#27632a;color:white;padding:18px;text-align:center}
+nav{padding:10px;background:white;text-align:center;position:sticky;top:0}
+button{padding:10px 14px;margin:4px;border:0;border-radius:7px;background:#27632a;color:white;cursor:pointer}
+button.red{background:#b3261e}
+section{display:none;padding:20px;max-width:1100px;margin:auto}
+section.active{display:block}
+.card{background:white;padding:18px;margin:12px 0;border-radius:10px;box-shadow:0 2px 8px #0001}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+input,select,textarea{width:100%;padding:10px;margin:5px 0 12px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box}
+table{width:100%;border-collapse:collapse;background:white}
+th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}
+.login{position:fixed;inset:0;background:#eef2ef;display:flex;align-items:center;justify-content:center;z-index:10}
+.loginbox{background:white;padding:30px;border-radius:12px;width:90%;max-width:350px}
+.stat{font-size:28px;font-weight:bold}
+</style>
+</head>
+
+<body>
+
+<div class="login" id="login">
+<div class="loginbox">
+<h2>🐦 Gestão da Criação</h2>
+<p>Palavra-passe</p>
+<input type="password" id="password">
+<button onclick="entrar()">Entrar</button>
+<p id="erro"></p>
+<p>Palavra-passe inicial: <b>1234</b></p>
+</div>
+</div>
+
+<header>
+<h1>🐦 Gestão da Criação</h1>
+</header>
+
+<nav>
+<button onclick="mostrar('inicio')">Resumo</button>
+<button onclick="mostrar('aves')">Aves atuais</button>
+<button onclick="mostrar('registar')">+ Registar ave</button>
+<button onclick="mostrar('vendas')">Vendas</button>
+<button onclick="mostrar('despesas')">Despesas</button>
+</nav>
+
+<section id="inicio" class="active">
+<h2>Resumo</h2>
+<div class="grid">
+<div class="card">🐦 Aves atuais<div class="stat" id="totalAves">0</div></div>
+<div class="card">💰 Vendas este mês<div class="stat" id="vendasMes">0 €</div></div>
+<div class="card">🧾 Despesas este mês<div class="stat" id="despesasMes">0 €</div></div>
+<div class="card">📈 Resultado<div class="stat" id="resultado">0 €</div></div>
+</div>
+</section>
+
+<section id="aves">
+<h2>🐦 Aves atuais</h2>
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>ID</th><th>Espécie</th><th>Mutação</th><th>Sexo</th><th>Anilha</th><th>Nascimento</th><th></th>
+</tr>
+</thead>
+<tbody id="listaAves"></tbody>
+</table>
+</div>
+</section>
+
+<section id="registar">
+<h2>➕ Registar ave</h2>
+<div class="card">
+<label>Espécie</label>
+<input id="especie" placeholder="Ex.: Caturra">
+
+<label>Mutação</label>
+<input id="mutacao" placeholder="Ex.: Cinzenta">
+
+<label>Sexo</label>
+<select id="sexo">
+<option>Desconhecido</option>
+<option>Macho</option>
+<option>Fêmea</option>
+</select>
+
+<label>Número da anilha</label>
+<input id="anilha">
+
+<label>Data de nascimento</label>
+<input id="nascimento" type="date">
+
+<label>Data de entrada</label>
+<input id="entrada" type="date">
+
+<label>Origem</label>
+<select id="origem">
+<option>Nascida na criação</option>
+<option>Comprada</option>
+</select>
+
+<label>Valor de compra (€)</label>
+<input id="compra" type="number" step="0.01">
+
+<label>Pai</label>
+<input id="pai">
+
+<label>Mãe</label>
+<input id="mae">
+
+<label>Observações</label>
+<textarea id="observacoes"></textarea>
+
+<button onclick="registarAve()">Guardar ave</button>
+</div>
+</section>
+
+<section id="vendas">
+<h2>💰 Vendas</h2>
+<div class="card">
+<table>
+<thead>
+<tr>
+<th>Data</th><th>ID</th><th>Espécie</th><th>Mutação</th><th>Anilha</th><th>Valor</th>
+</tr>
+</thead>
+<tbody id="listaVendas"></tbody>
+</table>
+</div>
+</section>
+
+<section id="despesas">
+<h2>🧾 Despesas</h2>
+<div class="card">
+<label>Data</label>
+<input id="dataDespesa" type="date">
+
+<label>Categoria</label>
+<select id="categoria">
+<option>Ração</option>
+<option>Veterinário</option>
+<option>Anilhas</option>
+<option>Gaiolas/material</option>
+<option>Vitaminas</option>
+<option>Eletricidade</option>
+<option>Outra</option>
+</select>
+
+<label>Descrição</label>
+<input id="descricao">
+
+<label>Valor (€)</label>
+<input id="valorDespesa" type="number" step="0.01">
+
+<button onclick="registarDespesa()">Guardar despesa</button>
+</div>
+
+<div class="card">
+<table>
+<thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead>
+<tbody id="listaDespesas"></tbody>
+</table>
+</div>
+</section>
+
+<script>
+
+let dados=JSON.parse(localStorage.getItem("criacaoAves")||'{"aves":[],"vendas":[],"despesas":[],"password":"1234"}');
+
+function guardar(){
+localStorage.setItem("criacaoAves",JSON.stringify(dados));
+atualizar();
+}
+
+function entrar(){
+if(document.getElementById("password").value===dados.password){
+document.getElementById("login").style.display="none";
+}else{
+document.getElementById("erro").innerText="Palavra-passe incorreta.";
+}
+}
+
+function mostrar(id){
+document.querySelectorAll("section").forEach(x=>x.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+atualizar();
+}
+
+function dinheiro(v){
+return Number(v||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"});
+}
+
+function registarAve(){
+
+let id="A"+String(dados.aves.length+1).padStart(4,"0");
+
+dados.aves.push({
+id:id,
+especie:especie.value,
+mutacao:mutacao.value,
+sexo:sexo.value,
+anilha:anilha.value,
+nascimento:nascimento.value,
+entrada:entrada.value,
+origem:origem.value,
+compra:Number(compra.value||0),
+pai:pai.value,
+mae:mae.value,
+observacoes:observacoes.value,
+estado:"Atual"
+});
+
+guardar();
+
+alert("Ave registada com o número "+id);
+
+document.querySelectorAll("#registar input,#registar textarea").forEach(x=>x.value="");
+
+}
+
+function vender(id){
+
+let ave=dados.aves.find(x=>x.id===id);
+
+let data=prompt("Data da venda (AAAA-MM-DD):",new Date().toISOString().slice(0,10));
+
+if(!data)return;
+
+let valor=prompt("Valor da venda (€):");
+
+if(valor===null)return;
+
+let comprador=prompt("Nome do comprador (opcional):","");
+
+dados.vendas.push({
+data:data,
+id:ave.id,
+especie:ave.especie,
+mutacao:ave.mutacao,
+sexo:ave.sexo,
+anilha:ave.anilha,
+valor:Number(valor),
+comprador:comprador
+});
+
+ave.estado="Vendida";
+
+guardar();
+
+alert("Venda registada. A ave foi retirada das aves atuais.");
+
+}
+
+function registarDespesa(){
+
+if(!dataDespesa.value||!valorDespesa.value){
+alert("Preenche a data e o valor.");
+return;
+}
+
+dados.despesas.push({
+data:dataDespesa.value,
+categoria:categoria.value,
+descricao:descricao.value,
+valor:Number(valorDespesa.value)
+});
+
+guardar();
+
+dataDespesa.value="";
+descricao.value="";
+valorDespesa.value="";
+
+}
+
+function atualizar(){
+
+let atuais=dados.aves.filter(x=>x.estado==="Atual");
+
+totalAves.innerText=atuais.length;
+
+listaAves.innerHTML=atuais.map(a=>`
+<tr>
+<td>${a.id}</td>
+<td>${a.especie}</td>
+<td>${a.mutacao}</td>
+<td>${a.sexo}</td>
+<td>${a.anilha}</td>
+<td>${a.nascimento}</td>
+<td><button onclick="vender('${a.id}')">Vender</button></td>
+</tr>
+`).join("");
+
+listaVendas.innerHTML=dados.vendas.slice().reverse().map(v=>`
+<tr>
+<td>${v.data}</td>
+<td>${v.id}</td>
+<td>${v.especie}</td>
+<td>${v.mutacao}</td>
+<td>${v.anilha}</td>
+<td>${dinheiro(v.valor)}</td>
+</tr>
+`).join("");
+
+listaDespesas.innerHTML=dados.despesas.slice().reverse().map(d=>`
+<tr>
+<td>${d.data}</td>
+<td>${d.categoria}</td>
+<td>${d.descricao}</td>
+<td>${dinheiro(d.valor)}</td>
+</tr>
+`).join("");
+
+let mes=new Date().toISOString().slice(0,7);
+
+let vm=dados.vendas
+.filter(x=>x.data.startsWith(mes))
+.reduce((s,x)=>s+Number(x.valor),0);
+
+let dm=dados.despesas
+.filter(x=>x.data.startsWith(mes))
+.reduce((s,x)=>s+Number(x.valor),0);
+
+vendasMes.innerText=dinheiro(vm);
+despesasMes.innerText=dinheiro(dm);
+resultado.innerText=dinheiro(vm-dm);
+
+}
+
+atualizar();
+
+</script>
+
+</body>
+</html>
