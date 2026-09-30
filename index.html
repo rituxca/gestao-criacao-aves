@@ -4,334 +4,1015 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Gestão da Criação</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-body{font-family:Arial;margin:0;background:#f4f6f5;color:#222}
-header{background:#27632a;color:white;padding:18px;text-align:center}
-nav{padding:10px;background:white;text-align:center;position:sticky;top:0}
-button{padding:10px 14px;margin:4px;border:0;border-radius:7px;background:#27632a;color:white;cursor:pointer}
-button.red{background:#b3261e}
-section{display:none;padding:20px;max-width:1100px;margin:auto}
-section.active{display:block}
-.card{background:white;padding:18px;margin:12px 0;border-radius:10px;box-shadow:0 2px 8px #0001}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
-input,select,textarea{width:100%;padding:10px;margin:5px 0 12px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box}
-table{width:100%;border-collapse:collapse;background:white}
-th,td{padding:9px;border-bottom:1px solid #ddd;text-align:left}
-.login{position:fixed;inset:0;background:#eef2ef;display:flex;align-items:center;justify-content:center;z-index:10}
-.loginbox{background:white;padding:30px;border-radius:12px;width:90%;max-width:350px}
-.stat{font-size:28px;font-weight:bold}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:#f5f7f9;color:#1f2937}
+header{background:#166534;color:white;padding:16px 20px;display:flex;justify-content:space-between;align-items:center}
+header h1{margin:0;font-size:21px}
+header button{background:white;color:#166534;border:0;border-radius:8px;padding:9px 13px}
+main{max-width:1100px;margin:20px auto;padding:0 14px}
+.card{background:white;border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 2px 10px #0001}
+.login{max-width:420px;margin:80px auto}
+.login h1{text-align:center;color:#166534}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+label{font-size:13px;font-weight:bold;display:block;margin-bottom:5px}
+input,select,textarea{width:100%;padding:10px;border:1px solid #d1d5db;border-radius:8px;background:white}
+textarea{min-height:70px}
+button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer;font-weight:bold}
+.primary{background:#166534;color:white}
+.danger{background:#b91c1c;color:white}
+nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+nav button{background:#e5e7eb}
+nav button.active{background:#166534;color:white}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.stat{background:white;border-radius:12px;padding:18px;box-shadow:0 2px 10px #0001}
+.stat small{display:block;color:#6b7280}
+.stat strong{font-size:25px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px;border-bottom:1px solid #e5e7eb;text-align:left}
+th{background:#f9fafb}
+.tablewrap{overflow:auto}
+.hidden{display:none}
+.muted{color:#6b7280;font-size:13px}
+.error{background:#fee2e2;color:#991b1b;padding:10px;border-radius:8px;margin:10px 0}
+.ok{background:#dcfce7;color:#166534;padding:10px;border-radius:8px;margin:10px 0}
 </style>
 </head>
 
 <body>
 
-<div class="login" id="login">
-<div class="loginbox">
-<h2>🐦 Gestão da Criação</h2>
-<p>Palavra-passe</p>
-<input type="password" id="password">
-<button onclick="entrar()">Entrar</button>
-<p id="erro"></p>
-<p>Palavra-passe inicial: <b>1234</b></p>
+<div id="loginView" class="login card">
+<h1>Gestão da Criação</h1>
+<p class="muted">Entra para aceder aos teus dados.</p>
+
+<div id="loginMsg"></div>
+
+<label>Email</label>
+<input id="loginEmail" type="email" autocomplete="username">
+
+<br><br>
+
+<label>Palavra-passe</label>
+<input id="loginPassword" type="password" autocomplete="current-password">
+
+<br><br>
+
+<button class="primary" style="width:100%" onclick="login()">Entrar</button>
 </div>
-</div>
+
+
+<div id="appView" class="hidden">
 
 <header>
-<h1>🐦 Gestão da Criação</h1>
+<h1>Gestão da Criação</h1>
+<button onclick="logout()">Sair</button>
 </header>
 
+<main>
+
 <nav>
-<button onclick="mostrar('inicio')">Resumo</button>
-<button onclick="mostrar('aves')">Aves atuais</button>
-<button onclick="mostrar('registar')">+ Registar ave</button>
-<button onclick="mostrar('vendas')">Vendas</button>
-<button onclick="mostrar('despesas')">Despesas</button>
+<button id="navDashboard" onclick="showTab('dashboard')" class="active">Resumo</button>
+<button id="navBirds" onclick="showTab('birds')">Aves atuais</button>
+<button id="navAdd" onclick="showTab('add')">Registar ave</button>
+<button id="navSales" onclick="showTab('sales')">Vendas</button>
+<button id="navExpenses" onclick="showTab('expenses')">Despesas</button>
 </nav>
 
-<section id="inicio" class="active">
+
+<section id="tabDashboard">
+
+<div class="stats">
+
+<div class="stat">
+<small>Aves atuais</small>
+<strong id="stBirds">0</strong>
+</div>
+
+<div class="stat">
+<small>Vendas este mês</small>
+<strong id="stSales">0,00 €</strong>
+</div>
+
+<div class="stat">
+<small>Despesas este mês</small>
+<strong id="stExpenses">0,00 €</strong>
+</div>
+
+<div class="stat">
+<small>Resultado este mês</small>
+<strong id="stResult">0,00 €</strong>
+</div>
+
+</div>
+
+<div class="card">
 <h2>Resumo</h2>
+<p class="muted">
+Os dados são guardados na nuvem e ficam disponíveis noutros dispositivos.
+</p>
+<p id="lastRefresh" class="muted"></p>
+</div>
+
+</section>
+
+
+<section id="tabBirds" class="hidden">
+
+<div class="card">
+
+<h2>Aves atuais</h2>
+
+<div id="birdsTable" class="tablewrap"></div>
+
+</div>
+
+</section>
+
+
+<section id="tabAdd" class="hidden">
+
+<div class="card">
+
+<h2>Registar ave</h2>
+
+<form id="birdForm" onsubmit="saveBird(event)">
+
 <div class="grid">
-<div class="card">🐦 Aves atuais<div class="stat" id="totalAves">0</div></div>
-<div class="card">💰 Vendas este mês<div class="stat" id="vendasMes">0 €</div></div>
-<div class="card">🧾 Despesas este mês<div class="stat" id="despesasMes">0 €</div></div>
-<div class="card">📈 Resultado<div class="stat" id="resultado">0 €</div></div>
+
+<div>
+<label>Código *</label>
+<input id="bCode" required placeholder="Ex.: A0001">
 </div>
-</section>
 
-<section id="aves">
-<h2>🐦 Aves atuais</h2>
-<div class="card">
-<table>
-<thead>
-<tr>
-<th>ID</th><th>Espécie</th><th>Mutação</th><th>Sexo</th><th>Anilha</th><th>Nascimento</th><th></th>
-</tr>
-</thead>
-<tbody id="listaAves"></tbody>
-</table>
+<div>
+<label>Espécie *</label>
+<input id="bSpecies" required value="Caturra">
 </div>
-</section>
 
-<section id="registar">
-<h2>➕ Registar ave</h2>
-<div class="card">
-<label>Espécie</label>
-<input id="especie" placeholder="Ex.: Caturra">
-
+<div>
 <label>Mutação</label>
-<input id="mutacao" placeholder="Ex.: Cinzenta">
+<input id="bMutation">
+</div>
 
+<div>
 <label>Sexo</label>
-<select id="sexo">
-<option>Desconhecido</option>
+<select id="bSex">
+<option value="">—</option>
 <option>Macho</option>
 <option>Fêmea</option>
+<option>Desconhecido</option>
 </select>
-
-<label>Número da anilha</label>
-<input id="anilha">
-
-<label>Data de nascimento</label>
-<input id="nascimento" type="date">
-
-<label>Data de entrada</label>
-<input id="entrada" type="date">
-
-<label>Origem</label>
-<select id="origem">
-<option>Nascida na criação</option>
-<option>Comprada</option>
-</select>
-
-<label>Valor de compra (€)</label>
-<input id="compra" type="number" step="0.01">
-
-<label>Pai</label>
-<input id="pai">
-
-<label>Mãe</label>
-<input id="mae">
-
-<label>Observações</label>
-<textarea id="observacoes"></textarea>
-
-<button onclick="registarAve()">Guardar ave</button>
 </div>
+
+<div>
+<label>Anilha</label>
+<input id="bRing">
+</div>
+
+<div>
+<label>Data de nascimento</label>
+<input id="bBirth" type="date">
+</div>
+
+<div>
+<label>Data de entrada</label>
+<input id="bEntry" type="date">
+</div>
+
+<div>
+<label>Origem</label>
+<input id="bOrigin">
+</div>
+
+<div>
+<label>Valor de compra (€)</label>
+<input id="bPurchase" type="number" step="0.01">
+</div>
+
+<div>
+<label>Pai (código)</label>
+<input id="bFather">
+</div>
+
+<div>
+<label>Mãe (código)</label>
+<input id="bMother">
+</div>
+
+<div>
+<label>Criador/fornecedor</label>
+<input id="bBreeder">
+</div>
+
+</div>
+
+<br>
+
+<label>Notas</label>
+<textarea id="bNotes"></textarea>
+
+<br><br>
+
+<button class="primary">Guardar ave</button>
+
+</form>
+
+<div id="birdMsg"></div>
+
+</div>
+
 </section>
 
-<section id="vendas">
-<h2>💰 Vendas</h2>
+
+<section id="tabSales" class="hidden">
+
 <div class="card">
+
+<h2>Vendas</h2>
+
+<div id="salesTable" class="tablewrap"></div>
+
+</div>
+
+</section>
+
+
+<section id="tabExpenses" class="hidden">
+
+<div class="card">
+
+<h2>Registar despesa</h2>
+
+<form id="expenseForm" onsubmit="saveExpense(event)">
+
+<div class="grid">
+
+<div>
+<label>Data *</label>
+<input id="eDate" type="date" required>
+</div>
+
+<div>
+<label>Categoria</label>
+<input id="eCategory" placeholder="Ração, veterinário, material...">
+</div>
+
+<div>
+<label>Descrição</label>
+<input id="eDescription">
+</div>
+
+<div>
+<label>Valor (€) *</label>
+<input id="eValue" type="number" step="0.01" required>
+</div>
+
+</div>
+
+<br>
+
+<button class="primary">Guardar despesa</button>
+
+</form>
+
+<div id="expenseMsg"></div>
+
+</div>
+
+<div class="card">
+
+<h2>Histórico de despesas</h2>
+
+<div id="expensesTable" class="tablewrap"></div>
+
+</div>
+
+</section>
+
+</main>
+</div>
+<script>
+const SUPABASE_URL = "https://zwqtygyceomwxeccnsjr.supabase.co";
+const SUPABASE_KEY = "sb_publishable_7OB3cx_jCJHeRdtV4R7vUg_PtiLPlEu";
+
+const db = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_KEY
+);
+
+let birds = [];
+let sales = [];
+let expenses = [];
+
+const euro = n =>
+  Number(n || 0).toLocaleString("pt-PT", {
+    style: "currency",
+    currency: "EUR"
+  });
+
+const esc = s =>
+  String(s ?? "").replace(/[&<>"']/g, m => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#039;"
+  }[m]));
+
+const today = () =>
+  new Date().toISOString().slice(0,10);
+
+const monthStart = () => {
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1)
+    .toISOString().slice(0,10);
+};
+
+function message(id, text, ok=false) {
+  document.getElementById(id).innerHTML =
+    text
+      ? `<div class="${ok ? "ok" : "error"}">${esc(text)}</div>`
+      : "";
+}
+
+
+/* LOGIN */
+
+async function login() {
+
+  const email =
+    document.getElementById("loginEmail").value.trim();
+
+  const password =
+    document.getElementById("loginPassword").value;
+
+  if (!email || !password) {
+    message("loginMsg",
+      "Preenche o email e a palavra-passe.");
+    return;
+  }
+
+  const { error } =
+    await db.auth.signInWithPassword({
+      email,
+      password
+    });
+
+  if (error) {
+    message("loginMsg", error.message);
+    return;
+  }
+
+  message("loginMsg", "");
+
+  await startApp();
+}
+
+
+async function logout() {
+
+  await db.auth.signOut();
+
+  location.reload();
+}
+
+
+/* INICIAR */
+
+async function startApp() {
+
+  document
+    .getElementById("loginView")
+    .classList.add("hidden");
+
+  document
+    .getElementById("appView")
+    .classList.remove("hidden");
+
+  await refreshAll();
+}
+
+
+/* CARREGAR DADOS */
+
+async function refreshAll() {
+
+  const result = await Promise.all([
+
+    db
+      .from("birds")
+      .select("*")
+      .order("created_at", {ascending:false}),
+
+    db
+      .from("sales")
+      .select("*")
+      .order("sale_date", {ascending:false}),
+
+    db
+      .from("expenses")
+      .select("*")
+      .order("expense_date", {ascending:false})
+
+  ]);
+
+  const b = result[0];
+  const s = result[1];
+  const e = result[2];
+
+  if (b.error || s.error || e.error) {
+
+    alert(
+      (b.error || s.error || e.error).message
+    );
+
+    return;
+  }
+
+  birds = b.data || [];
+  sales = s.data || [];
+  expenses = e.data || [];
+
+  renderAll();
+}
+
+
+/* MOSTRAR TUDO */
+
+function renderAll() {
+
+  const start = monthStart();
+
+  const current =
+    birds.filter(x => x.status === "current");
+
+  const salesMonth =
+    sales
+      .filter(x => x.sale_date >= start)
+      .reduce(
+        (total, x) =>
+          total + Number(x.sale_value || 0),
+        0
+      );
+
+  const expensesMonth =
+    expenses
+      .filter(x => x.expense_date >= start)
+      .reduce(
+        (total, x) =>
+          total + Number(x.value || 0),
+        0
+      );
+
+  document.getElementById("stBirds")
+    .textContent = current.length;
+
+  document.getElementById("stSales")
+    .textContent = euro(salesMonth);
+
+  document.getElementById("stExpenses")
+    .textContent = euro(expensesMonth);
+
+  document.getElementById("stResult")
+    .textContent = euro(
+      salesMonth - expensesMonth
+    );
+
+  document.getElementById("lastRefresh")
+    .textContent =
+      "Atualizado: " +
+      new Date().toLocaleString("pt-PT");
+
+  renderBirds();
+  renderSales();
+  renderExpenses();
+}
+
+
+/* NAVEGAÇÃO */
+
+function showTab(tab) {
+
+  const tabs = [
+    "dashboard",
+    "birds",
+    "add",
+    "sales",
+    "expenses"
+  ];
+
+  tabs.forEach(x => {
+
+    document
+      .getElementById(
+        "tab" +
+        x.charAt(0).toUpperCase() +
+        x.slice(1)
+      )
+      .classList.add("hidden");
+
+  });
+
+  document
+    .getElementById(
+      "tab" +
+      tab.charAt(0).toUpperCase() +
+      tab.slice(1)
+    )
+    .classList.remove("hidden");
+
+  document
+    .querySelectorAll("nav button")
+    .forEach(x => x.classList.remove("active"));
+
+  const buttons = {
+    dashboard:"navDashboard",
+    birds:"navBirds",
+    add:"navAdd",
+    sales:"navSales",
+    expenses:"navExpenses"
+  };
+
+  document
+    .getElementById(buttons[tab])
+    .classList.add("active");
+}
+
+
+/* AVES */
+
+function renderBirds() {
+
+  const current =
+    birds.filter(x => x.status === "current");
+
+  const rows = current.map(x => `
+
+<tr>
+
+<td><b>${esc(x.code)}</b></td>
+
+<td>${esc(x.species)}</td>
+
+<td>${esc(x.mutation)}</td>
+
+<td>${esc(x.sex)}</td>
+
+<td>${esc(x.ring)}</td>
+
+<td>${esc(x.birth_date || "")}</td>
+
+<td>${esc(x.origin || "")}</td>
+
+<td>
+<button
+class="danger"
+onclick="sellBird('${x.id}')">
+Vender
+</button>
+</td>
+
+</tr>
+
+`).join("");
+
+  document.getElementById("birdsTable").innerHTML =
+    rows
+      ? `
 <table>
+
 <thead>
 <tr>
-<th>Data</th><th>ID</th><th>Espécie</th><th>Mutação</th><th>Anilha</th><th>Valor</th>
+<th>Código</th>
+<th>Espécie</th>
+<th>Mutação</th>
+<th>Sexo</th>
+<th>Anilha</th>
+<th>Nascimento</th>
+<th>Origem</th>
+<th></th>
 </tr>
 </thead>
-<tbody id="listaVendas"></tbody>
+
+<tbody>
+${rows}
+</tbody>
+
 </table>
-</div>
-</section>
+`
+      : `<p class="muted">
+Ainda não existem aves atuais.
+</p>`;
+}
 
-<section id="despesas">
-<h2>🧾 Despesas</h2>
-<div class="card">
-<label>Data</label>
-<input id="dataDespesa" type="date">
 
-<label>Categoria</label>
-<select id="categoria">
-<option>Ração</option>
-<option>Veterinário</option>
-<option>Anilhas</option>
-<option>Gaiolas/material</option>
-<option>Vitaminas</option>
-<option>Eletricidade</option>
-<option>Outra</option>
-</select>
+/* GUARDAR AVE */
 
-<label>Descrição</label>
-<input id="descricao">
+async function saveBird(event) {
 
-<label>Valor (€)</label>
-<input id="valorDespesa" type="number" step="0.01">
+  event.preventDefault();
 
-<button onclick="registarDespesa()">Guardar despesa</button>
-</div>
+  const data = {
 
-<div class="card">
+    code:
+      document.getElementById("bCode")
+      .value.trim(),
+
+    species:
+      document.getElementById("bSpecies")
+      .value.trim(),
+
+    mutation:
+      document.getElementById("bMutation")
+      .value.trim() || null,
+
+    sex:
+      document.getElementById("bSex")
+      .value || null,
+
+    ring:
+      document.getElementById("bRing")
+      .value.trim() || null,
+
+    birth_date:
+      document.getElementById("bBirth")
+      .value || null,
+
+    entry_date:
+      document.getElementById("bEntry")
+      .value || null,
+
+    origin:
+      document.getElementById("bOrigin")
+      .value.trim() || null,
+
+    purchase_value:
+      document.getElementById("bPurchase")
+      .value
+      ? Number(
+          document.getElementById("bPurchase").value
+        )
+      : null,
+
+    father_code:
+      document.getElementById("bFather")
+      .value.trim() || null,
+
+    mother_code:
+      document.getElementById("bMother")
+      .value.trim() || null,
+
+    breeder:
+      document.getElementById("bBreeder")
+      .value.trim() || null,
+
+    notes:
+      document.getElementById("bNotes")
+      .value.trim() || null,
+
+    status:"current"
+  };
+
+  const { error } =
+    await db.from("birds").insert(data);
+
+  if (error) {
+
+    message(
+      "birdMsg",
+      error.message
+    );
+
+    return;
+  }
+
+  document
+    .getElementById("birdForm")
+    .reset();
+
+  document
+    .getElementById("bSpecies")
+    .value = "Caturra";
+
+  message(
+    "birdMsg",
+    "Ave guardada com sucesso.",
+    true
+  );
+
+  await refreshAll();
+}
+
+
+/* VENDER AVE */
+
+async function sellBird(id) {
+
+  const bird =
+    birds.find(x => x.id === id);
+
+  if (!bird) return;
+
+  const value =
+    prompt("Valor da venda (€):", "");
+
+  if (value === null) return;
+
+  const saleValue =
+    Number(value.replace(",", "."));
+
+  if (
+    !Number.isFinite(saleValue) ||
+    saleValue < 0
+  ) {
+
+    alert("Indica um valor válido.");
+
+    return;
+  }
+
+  const buyer =
+    prompt(
+      "Comprador (opcional):",
+      ""
+    ) || null;
+
+  const date =
+    prompt(
+      "Data da venda (AAAA-MM-DD):",
+      today()
+    ) || today();
+
+
+  const { error:updateError } =
+    await db
+      .from("birds")
+      .update({
+        status:"sold",
+        sale_date:date,
+        sale_value:saleValue
+      })
+      .eq("id", id);
+
+
+  if (updateError) {
+
+    alert(updateError.message);
+
+    return;
+  }
+
+
+  const { error:saleError } =
+    await db
+      .from("sales")
+      .insert({
+
+        bird_id:id,
+
+        sale_date:date,
+
+        sale_value:saleValue,
+
+        buyer:buyer
+
+      });
+
+
+  if (saleError) {
+
+    await db
+      .from("birds")
+      .update({
+        status:"current",
+        sale_date:null,
+        sale_value:null
+      })
+      .eq("id", id);
+
+    alert(saleError.message);
+
+    return;
+  }
+
+  await refreshAll();
+}
+
+
+/* VENDAS */
+
+function renderSales() {
+
+  const rows =
+    sales.map(x => {
+
+      const bird =
+        birds.find(
+          y => y.id === x.bird_id
+        );
+
+      return `
+
+<tr>
+
+<td>${esc(x.sale_date)}</td>
+
+<td>${esc(bird?.code || "—")}</td>
+
+<td>${esc(bird?.species || "")}</td>
+
+<td>${euro(x.sale_value)}</td>
+
+<td>${esc(x.buyer || "")}</td>
+
+</tr>
+
+`;
+
+    }).join("");
+
+
+  document.getElementById("salesTable").innerHTML =
+    rows
+      ? `
+
 <table>
-<thead><tr><th>Data</th><th>Categoria</th><th>Descrição</th><th>Valor</th></tr></thead>
-<tbody id="listaDespesas"></tbody>
+
+<thead>
+
+<tr>
+<th>Data</th>
+<th>Ave</th>
+<th>Espécie</th>
+<th>Valor</th>
+<th>Comprador</th>
+</tr>
+
+</thead>
+
+<tbody>
+${rows}
+</tbody>
+
 </table>
-</div>
-</section>
 
-<script>
-
-let dados=JSON.parse(localStorage.getItem("criacaoAves")||'{"aves":[],"vendas":[],"despesas":[],"password":"1234"}');
-
-function guardar(){
-localStorage.setItem("criacaoAves",JSON.stringify(dados));
-atualizar();
+`
+      : `<p class="muted">
+Ainda não existem vendas.
+</p>`;
 }
 
-function entrar(){
-if(document.getElementById("password").value===dados.password){
-document.getElementById("login").style.display="none";
-}else{
-document.getElementById("erro").innerText="Palavra-passe incorreta.";
-}
-}
 
-function mostrar(id){
-document.querySelectorAll("section").forEach(x=>x.classList.remove("active"));
-document.getElementById(id).classList.add("active");
-atualizar();
-}
+/* DESPESAS */
 
-function dinheiro(v){
-return Number(v||0).toLocaleString("pt-PT",{style:"currency",currency:"EUR"});
-}
+async function saveExpense(event) {
 
-function registarAve(){
+  event.preventDefault();
 
-let id="A"+String(dados.aves.length+1).padStart(4,"0");
+  const data = {
 
-dados.aves.push({
-id:id,
-especie:especie.value,
-mutacao:mutacao.value,
-sexo:sexo.value,
-anilha:anilha.value,
-nascimento:nascimento.value,
-entrada:entrada.value,
-origem:origem.value,
-compra:Number(compra.value||0),
-pai:pai.value,
-mae:mae.value,
-observacoes:observacoes.value,
-estado:"Atual"
-});
+    expense_date:
+      document.getElementById("eDate")
+      .value,
 
-guardar();
+    category:
+      document.getElementById("eCategory")
+      .value.trim() || null,
 
-alert("Ave registada com o número "+id);
+    description:
+      document.getElementById("eDescription")
+      .value.trim() || null,
 
-document.querySelectorAll("#registar input,#registar textarea").forEach(x=>x.value="");
+    value:
+      Number(
+        document.getElementById("eValue")
+        .value
+      )
 
-}
+  };
 
-function vender(id){
 
-let ave=dados.aves.find(x=>x.id===id);
+  const { error } =
+    await db
+      .from("expenses")
+      .insert(data);
 
-let data=prompt("Data da venda (AAAA-MM-DD):",new Date().toISOString().slice(0,10));
 
-if(!data)return;
+  if (error) {
 
-let valor=prompt("Valor da venda (€):");
+    message(
+      "expenseMsg",
+      error.message
+    );
 
-if(valor===null)return;
+    return;
+  }
 
-let comprador=prompt("Nome do comprador (opcional):","");
 
-dados.vendas.push({
-data:data,
-id:ave.id,
-especie:ave.especie,
-mutacao:ave.mutacao,
-sexo:ave.sexo,
-anilha:ave.anilha,
-valor:Number(valor),
-comprador:comprador
-});
+  document
+    .getElementById("expenseForm")
+    .reset();
 
-ave.estado="Vendida";
+  document
+    .getElementById("eDate")
+    .value = today();
 
-guardar();
 
-alert("Venda registada. A ave foi retirada das aves atuais.");
+  message(
+    "expenseMsg",
+    "Despesa guardada com sucesso.",
+    true
+  );
 
+  await refreshAll();
 }
 
-function registarDespesa(){
 
-if(!dataDespesa.value||!valorDespesa.value){
-alert("Preenche a data e o valor.");
-return;
-}
+/* LISTA DE DESPESAS */
 
-dados.despesas.push({
-data:dataDespesa.value,
-categoria:categoria.value,
-descricao:descricao.value,
-valor:Number(valorDespesa.value)
-});
+function renderExpenses() {
 
-guardar();
+  const rows =
+    expenses.map(x => `
 
-dataDespesa.value="";
-descricao.value="";
-valorDespesa.value="";
-
-}
-
-function atualizar(){
-
-let atuais=dados.aves.filter(x=>x.estado==="Atual");
-
-totalAves.innerText=atuais.length;
-
-listaAves.innerHTML=atuais.map(a=>`
 <tr>
-<td>${a.id}</td>
-<td>${a.especie}</td>
-<td>${a.mutacao}</td>
-<td>${a.sexo}</td>
-<td>${a.anilha}</td>
-<td>${a.nascimento}</td>
-<td><button onclick="vender('${a.id}')">Vender</button></td>
+
+<td>${esc(x.expense_date)}</td>
+
+<td>${esc(x.category || "")}</td>
+
+<td>${esc(x.description || "")}</td>
+
+<td>${euro(x.value)}</td>
+
 </tr>
+
 `).join("");
 
-listaVendas.innerHTML=dados.vendas.slice().reverse().map(v=>`
+
+  document.getElementById("expensesTable").innerHTML =
+    rows
+      ? `
+
+<table>
+
+<thead>
+
 <tr>
-<td>${v.data}</td>
-<td>${v.id}</td>
-<td>${v.especie}</td>
-<td>${v.mutacao}</td>
-<td>${v.anilha}</td>
-<td>${dinheiro(v.valor)}</td>
+<th>Data</th>
+<th>Categoria</th>
+<th>Descrição</th>
+<th>Valor</th>
 </tr>
-`).join("");
 
-listaDespesas.innerHTML=dados.despesas.slice().reverse().map(d=>`
-<tr>
-<td>${d.data}</td>
-<td>${d.categoria}</td>
-<td>${d.descricao}</td>
-<td>${dinheiro(d.valor)}</td>
-</tr>
-`).join("");
+</thead>
 
-let mes=new Date().toISOString().slice(0,7);
+<tbody>
+${rows}
+</tbody>
 
-let vm=dados.vendas
-.filter(x=>x.data.startsWith(mes))
-.reduce((s,x)=>s+Number(x.valor),0);
+</table>
 
-let dm=dados.despesas
-.filter(x=>x.data.startsWith(mes))
-.reduce((s,x)=>s+Number(x.valor),0);
-
-vendasMes.innerText=dinheiro(vm);
-despesasMes.innerText=dinheiro(dm);
-resultado.innerText=dinheiro(vm-dm);
-
+`
+      : `<p class="muted">
+Ainda não existem despesas.
+</p>`;
 }
 
-atualizar();
+
+/* DATA INICIAL */
+
+document.getElementById("eDate").value = today();
+
+
+/* VERIFICAR SESSÃO */
+
+db.auth.getSession().then(({data}) => {
+
+  if (data.session) {
+    startApp();
+  }
+
+});
+
+
+db.auth.onAuthStateChange(
+  (event, session) => {
+
+    if (
+      event === "SIGNED_IN" &&
+      session
+    ) {
+
+      startApp();
+
+    }
+
+  }
+);
 
 </script>
 
